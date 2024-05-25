@@ -1,0 +1,61 @@
+services:
+
+  web:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - 80:80
+    volumes:
+      - ./www/public:/var/www/public
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/ssl:/etc/ssl
+
+  php:
+    build: ./docker/php
+    container_name: php
+    working_dir: /var/www
+    volumes:
+      - ./www:/var/www
+      - ./config/php/php.ini:/usr/local/etc/php/php.ini
+
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - ./db:/var/lib/mysql
+      - ./config/mysql/my.cnf:/etc/mysql/my.cnf
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+      - MYSQL_DATABASE=db
+      - MYSQL_USER=pma
+      - MYSQL_PASSWORD=12345
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: pma
+    restart: always
+    environment:
+      PMA_HOST: mariadb
+      #PMA_ABSOLUTE_URI: http://localhost/pma/
+    ports:
+      - "8080:80"
+    depends_on:
+      - mariadb
+
+  composer:
+    image: composer/composer:latest
+    command: install
+    volumes:
+      - ./composer:/composer
+
+  node:
+    image: node:latest
+    container_name: node
+    working_dir: /sveltekit
+    command: "npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./sveltekit:/sveltekit
